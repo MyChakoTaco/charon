@@ -8,14 +8,14 @@ from datetime import datetime
 ACTIVE_DURATION_SECONDS = 86400
 DEFAULT_PARTY_SIZE = 4
 DEFAULT_JOIN_EMOJI = '👍'
-DEFAULT_CLOSE_EMOJI = '❌'
+DEFAULT_LEAVE_EMOJI = '❌'
 
 
 class party:
     def __init__(self, message, leader, name, size=None):
         self.__close = False
         self.message = message
-        self.__leader = leader
+        # self.__leader = leader
         self.__creationDateTime = datetime.now()
         self.__partyList = [leader.name]
         self.__waitlist = []
@@ -33,7 +33,7 @@ class party:
             self.imageURL = None
             self.joinEmoji = DEFAULT_JOIN_EMOJI
 
-        self.closeEmoji = DEFAULT_CLOSE_EMOJI
+        self.leaveEmoji = DEFAULT_LEAVE_EMOJI
 
     @staticmethod
     def __getPreset(name):
@@ -61,29 +61,35 @@ class party:
         if len(self.__partyList) < self.size and len(self.__waitlist) > 0:
             self.__partyList.append(self.__waitlist.pop(0))
 
+        if len(self.__partyList) == 0:
+            self.__close = True
+
+    def hasMember(self, name):
+        return name in self.__partyList or name in self.__waitlist
+
     def isMatchJoinEmoji(self, reaction):
         return (self.message.id == reaction.message.id
                 and self.joinEmoji == reaction.emoji)
 
-    def isMatchCloseEmoji(self, reaction, user):
+    def isMatchLeaveEmoji(self, reaction):
         return (self.message.id == reaction.message.id
-                and self.closeEmoji == reaction.emoji
-                and self.__leader.name == user.name)
+                and self.leaveEmoji == reaction.emoji)
 
     def isInactive(self):
         return ((datetime.now() - self.__creationDateTime).total_seconds()
                 > ACTIVE_DURATION_SECONDS)
 
-    def close(self):
-        self.__close = True
+    def isClosed(self):
+        return self.__close
 
     def getEmbed(self):
         embed = discord.Embed()
 
         if self.__close:
             embed.title = f'{self.name} (Closed)'
-            embed.description = ('This party was closed by '
-                                 f'{self.__leader.name}.')
+            embed.description = ('This party is closed.')
+            # embed.description = ('This party was closed by '
+            #                      f'{self.__leader.name}.')
         elif self.isInactive():
             embed.title = f'{self.name} (Inactive)'
             embed.description = ('This party is inactive because it is old.'

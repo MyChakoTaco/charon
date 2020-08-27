@@ -197,7 +197,7 @@ async def createParty(context, *args):
 
     await message.edit(embed=newParty.getEmbed())
     await message.add_reaction(newParty.joinEmoji)
-    await message.add_reaction(newParty.closeEmoji)
+    await message.add_reaction(newParty.leaveEmoji)
 
 
 @bot.event
@@ -225,22 +225,18 @@ async def on_reaction_add(reaction, user):
         if user.name == bot.user.name:
             continue
         if p.isMatchJoinEmoji(reaction):
-            p.addMember(user.name)
-            await reaction.message.edit(embed=p.getEmbed())
+            if not p.hasMember(user.name):
+                p.addMember(user.name)
+                await reaction.message.edit(embed=p.getEmbed())
+            await reaction.remove(user)
             break
-        if p.isMatchCloseEmoji(reaction, user):
-            p.close()
-            await reaction.message.edit(embed=p.getEmbed())
-            parties.remove(p)
-            break
-
-
-@bot.event
-async def on_reaction_remove(reaction, user):
-    for p in parties:
-        if p.isMatchJoinEmoji(reaction):
-            p.removeMember(user.name)
-            await reaction.message.edit(embed=p.getEmbed())
+        if p.isMatchLeaveEmoji(reaction):
+            if p.hasMember(user.name):
+                p.removeMember(user.name)
+                await reaction.message.edit(embed=p.getEmbed())
+                if p.isClosed():
+                    parties.remove(p)
+            await reaction.remove(user)
             break
 
 # seconds of running background loop
